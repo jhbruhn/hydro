@@ -1,6 +1,6 @@
 esphome:
   name: hydro
-  friendly_name: Hydro
+  friendly_name: Hydro Tower
   # Automatically add the mac address to the name
   # so you can use a single firmware for all devices
   name_add_mac_suffix: true
@@ -27,3 +27,233 @@ wifi:
 # In combination with the `ap` this allows the user
 # to provision wifi credentials to the device.
 captive_portal:
+
+web_server:
+  port: 80
+
+globals:
+  - id: interval_hours
+    type: int
+    initial_value: "6" # run every 6 hours
+    restore_value: true
+
+  - id: runtime_minutes
+    type: int
+    initial_value: "5"
+    restore_value: true
+
+  - id: last_scheduled_run
+    type: int
+    initial_value: "-1" # To track last scheduled run hour
+    restore_value: true
+
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: 24h
+  sleep_duration: 24h
+
+i2c:
+  sda: GPIO5
+  scl: GPIO6
+  scan: true
+  id: bus_a
+
+status_led:
+  pin:
+    number: GPIO7
+    inverted: false
+
+text_sensor:
+  - platform: template
+    name: "Last Run Hour"
+    id: last_run_text
+    icon: "mdi:clock-check-outline"
+    update_interval: 60s
+    lambda: |-
+      if (id(last_scheduled_run) == -1) return {"Never"};
+
+      char buffer[8];
+      sprintf(buffer, "%02d:00", id(last_scheduled_run));
+      return {buffer};
+  - platform: template
+    name: "Next Scheduled Runs"
+    id: next_run_text
+    icon: "mdi:clock-outline"
+    update_interval: 10s
+    lambda: |-
+      if (!id(system_time).now().is_valid()) return {"Unknown"};
+
+      auto now = id(system_time).now();
+      int interval = id(interval_hours);
+
+      // Calculate run times based on interval
+      std::string result = "";
+      for (int i = 0; i < 24; i += interval) {
+        if (result.length() > 0) {
+          result += ", ";
+        }
+        char buffer[6];
+        sprintf(buffer, "%02d:00", i);
+        result += buffer;
+      }
+
+      return {result};
+
+sensor:
+  - platform: adc
+    pin: GPIO00
+    id: battery_voltage
+    name: "Battery Voltage"
+    attenuation: auto
+    update_interval: 60s
+    device_class: voltage
+    filters:
+      - multiply: 2
+    on_value:
+      then:
+        - component.update: battery_percent
+  - platform: template
+    lambda: return id(battery_voltage).state;
+    update_interval: never
+    name: "Battery"
+    id: battery_percent
+    unit_of_measurement: "%"
+    device_class: battery
+    filters:
+      - calibrate_linear:
+          method: exact
+          datapoints:
+            - 0.00 -> 0.0
+            - 3.30 -> 1.0
+            - 3.39 -> 10.0
+            - 3.75 -> 50.0
+            - 4.11 -> 90.0
+            - 4.20 -> 100.0
+      - lambda: |-
+          if (x <= 100) {
+            return x;
+          } else {
+            return 100;
+          }
+          if (x <0) {
+            return 0;
+          }
+  - platform: bh1750
+    name: "Illuminance"
+    address: 0x23
+    update_interval: 60s
+  - platform: template
+    name: "Wakeup Cause"
+    accuracy_decimals: 0
+    lambda: return esp_sleep_get_wakeup_cause();
+  #- platform: max17043
+  #   id: max17043_id
+  #   i2c_id: bus_a
+  #   battery_voltage:
+  #     name: "Battery Voltage"
+  #  battery_level:
+  #   name: "Battery"
+
+number:
+  - platform: template
+    name: "Pump Interval Hours"
+    id: interval_input
+    optimistic: true
+    min_value: 1
+    max_value: 24
+    step: 1
+    initial_value: 6
+    on_value:
+      then:
+        - lambda: |-
+            id(interval_hours) = (int)x;
+            // Make sure interval divides evenly into 24 if possible
+            if (24 % id(interval_hours) != 0) {
+              // Find the closest divisor
+              int closest = id(interval_hours);
+              for (int i = id(interval_hours) - 1; i >= 1; i--) {
+                if (24 % i == 0 && 24 / i <= id(interval_hours) + 2) {
+                  closest = i;
+                  break;
+                }
+              }
+              id(interval_hours) = closest;
+            }
+            ESP_LOGI("schedule", "Interval set to every %d hours", id(interval_hours));
+
+  - platform: template
+    name: "Pump Runtime (min)"
+    id: runtime_input
+    optimistic: true
+    min_value: 1
+    max_value: 30
+    step: 1
+    initial_value: 2
+    on_value:
+      then:
+        - lambda: |-
+            id(runtime_minutes) = (int)x;
+            ESP_LOGI("schedule", "Runtime set to %d minutes", id(runtime_minutes));
+
+time:
+  - platform: sntp
+    timezone: Europe/Berlin
+    id: system_time
+    on_time:
+      - seconds: 0
+        minutes: 0
+        then:
+          - lambda: |-
+              if (!id(system_time).now().is_valid()) return;
+
+              auto now = id(system_time).now();
+              int current_hour = now.hour;
+
+              // Check if current hour is a scheduled run time (divisible by interval)
+              if (current_hour % id(interval_hours) == 0 && current_hour != id(last_scheduled_run)) {
+                ESP_LOGI("schedule", "Running pump at scheduled time %02d:00", current_hour);
+                id(last_scheduled_run) = current_hour;
+                id(run_pump).execute();
+              } else {
+                id(sleepy).execute();
+              }
+
+output:
+  - platform: ledc
+    pin: GPIO03
+    id: motor_forward_pin
+    frequency: 1000 Hz
+
+  - platform: ledc
+    pin: GPIO04
+    id: motor_reverse_pin
+    frequency: 1000 Hz
+
+fan:
+  - platform: hbridge
+    id: pump
+    internal: true
+    name: "Pump"
+    pin_a: motor_forward_pin
+    pin_b: motor_reverse_pin
+    decay_mode: slow
+
+script:
+  - id: run_pump
+    mode: restart
+    then:
+      - fan.turn_on: pump
+      - delay: !lambda "return id(runtime_minutes) * 60 * 1000;"
+      - fan.turn_off: pump
+      - script.execute: sleepy
+  - id: sleepy
+    mode: restart
+    then:
+      - if:
+          condition:
+            time.has_time:
+          then:
+            #- max17043.sleep_mode: max17043_id
+            - deep_sleep.enter:
+                id: deep_sleep_1
+                sleep_duration: !lambda "auto now = id(system_time).now(); return (60 - now.minute - 2) * 60 * 1000;"
