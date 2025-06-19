@@ -79,7 +79,7 @@ text_sensor:
     name: "Next Scheduled Runs"
     id: next_run_text
     icon: "mdi:clock-outline"
-    update_interval: 10s
+    update_interval: 60s
     lambda: |-
       if (!id(system_time).now().is_valid()) return {"Unknown"};
 
