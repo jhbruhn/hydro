@@ -20,10 +20,14 @@ ota:
 
 http_request:
 
+wifi:
+  on_connect:
+    - component.update: http_firmware_update
+
 update:
   - platform: http_request
     name: Firmware Update
-    update_interval: 1min
+    id: http_firmware_update
     source: https://jhbruhn.github.io/hydro/firmware/hydro.manifest.json
 
 # Sets up Bluetooth LE (Only on ESP32) to allow the user
