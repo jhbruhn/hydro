@@ -10,8 +10,6 @@ esp32:
   framework:
     type: esp-idf
 
-#moin
-
 # To be able to get logs from the device via serial and api.
 logger:
 
@@ -112,6 +110,7 @@ sensor:
     attenuation: auto
     update_interval: 60s
     device_class: voltage
+    accuracy_decimals: 2
     filters:
       - multiply: 2
     on_value:
