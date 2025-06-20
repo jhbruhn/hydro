@@ -1,3 +1,5 @@
+name-template: "v$RESOLVED_VERSION 🌈"
+tag-template: "v$RESOLVED_VERSION"
 template: |
   ## What’s Changed
 
@@ -6,9 +8,25 @@ version-resolver:
   default: minor
 categories:
   - title: "🚀 Features"
-    label: "feature"
+    labels:
+      - "feature"
+      - "enhancement"
   - title: "🐛 Bug Fixes"
     labels:
       - "fix"
       - "bugfix"
       - "bug"
+autolabeler:
+  - label: "bug"
+    branch:
+      - '/fix\/.+/'
+    title:
+      - "/fix/i"
+      - "/bug/i"
+      - "/bugfix/i"
+  - label: "enhancement"
+    branch:
+      - '/feature\/.+/'
+    title:
+      - "/feature/i"
+      - "/enhancement/i"
