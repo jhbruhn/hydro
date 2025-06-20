@@ -66,6 +66,7 @@ status_led:
 text_sensor:
   - platform: template
     name: "Last Run Hour"
+    entity_category: diagnostic
     id: last_run_text
     icon: "mdi:clock-check-outline"
     update_interval: 60s
@@ -77,6 +78,7 @@ text_sensor:
       return {buffer};
   - platform: template
     name: "Next Scheduled Runs"
+    entity_category: diagnostic
     id: next_run_text
     icon: "mdi:clock-outline"
     update_interval: 60s
@@ -104,6 +106,7 @@ sensor:
     pin: GPIO00
     id: battery_voltage
     name: "Battery Voltage"
+    entity_category: diagnostic
     attenuation: auto
     update_interval: 60s
     device_class: voltage
@@ -116,6 +119,7 @@ sensor:
     lambda: return id(battery_voltage).state;
     update_interval: never
     name: "Battery"
+    entity_category: diagnostic
     id: battery_percent
     unit_of_measurement: "%"
     device_class: battery
@@ -144,6 +148,7 @@ sensor:
     update_interval: 60s
   - platform: template
     name: "Wakeup Cause"
+    entity_category: diagnostic
     accuracy_decimals: 0
     lambda: return esp_sleep_get_wakeup_cause();
   #- platform: max17043
@@ -158,6 +163,7 @@ number:
   - platform: template
     name: "Pump Interval Hours"
     id: interval_input
+    entity_category: configuration
     optimistic: true
     min_value: 1
     max_value: 24
@@ -184,6 +190,7 @@ number:
   - platform: template
     name: "Pump Runtime (min)"
     id: runtime_input
+    entity_category: configuration
     optimistic: true
     min_value: 1
     max_value: 30
