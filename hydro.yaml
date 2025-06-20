@@ -112,6 +112,7 @@ sensor:
     attenuation: auto
     update_interval: 60s
     device_class: voltage
+    accuracy_decimals: 2
     filters:
       - multiply: 2
     on_value:
