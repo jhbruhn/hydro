@@ -163,7 +163,7 @@ number:
   - platform: template
     name: "Pump Interval Hours"
     id: interval_input
-    entity_category: configuration
+    entity_category: config
     optimistic: true
     min_value: 1
     max_value: 24
@@ -190,7 +190,7 @@ number:
   - platform: template
     name: "Pump Runtime (min)"
     id: runtime_input
-    entity_category: configuration
+    entity_category: config
     optimistic: true
     min_value: 1
     max_value: 30
