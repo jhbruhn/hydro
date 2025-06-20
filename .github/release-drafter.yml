@@ -2,6 +2,8 @@ template: |
   ## What’s Changed
 
   $CHANGES
+version-resolver:
+  default: minor
 categories:
   - title: "🚀 Features"
     label: "feature"
