@@ -170,6 +170,7 @@ number:
     max_value: 24
     step: 1
     initial_value: 6
+    restore_value: true
     on_value:
       then:
         - lambda: |-
@@ -197,6 +198,7 @@ number:
     max_value: 30
     step: 1
     initial_value: 2
+    restore_value: true
     on_value:
       then:
         - lambda: |-
