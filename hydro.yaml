@@ -187,20 +187,26 @@ time:
       - seconds: 0
         minutes: 0
         then:
-          - lambda: |-
-              if (!id(system_time).now().is_valid()) return;
-
-              auto now = id(system_time).now();
-              int current_hour = now.hour;
-
-              // Check if current hour is a scheduled run time (divisible by interval)
-              if (current_hour % (int) id(interval_input).state == 0 && current_hour != id(last_scheduled_run)) {
-                ESP_LOGI("schedule", "Running pump at scheduled time %02d:00", current_hour);
-                id(last_scheduled_run) = current_hour;
-                id(run_pump).execute();
-              } else {
-                id(sleepy).execute();
-              }
+          - if:
+              condition:
+                lambda: "return (id(system_time).now().hour % (int) id(interval_input).state) == 0;"
+              then:
+                - fan.turn_on: pump
+      - seconds: 0
+        minutes: "1-59"
+        then:
+          - if:
+              condition:
+                lambda: "return (id(system_time).now().hour % (int) id(interval_input).state) != 0;"
+              then:
+                - script.execute: sleepy
+              else:
+                - if:
+                    condition:
+                      lambda: "return id(system_time).now().minute >= id(runtime_input).state;"
+                    then:
+                      - fan.turn_off: pump
+                      - script.execute: sleepy
 
 output:
   - platform: ledc
@@ -223,13 +229,6 @@ fan:
     decay_mode: slow
 
 script:
-  - id: run_pump
-    mode: restart
-    then:
-      - fan.turn_on: pump
-      - delay: !lambda "return id(runtime_input).state * 60 * 1000;"
-      - fan.turn_off: pump
-      - script.execute: sleepy
   - id: sleepy
     mode: restart
     then:
