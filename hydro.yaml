@@ -197,6 +197,9 @@ time:
                 lambda: "return (id(system_time).now().hour % (int) id(interval_input).state) == 0;"
               then:
                 - fan.turn_on: pump
+                - globals.set:
+                    id: last_scheduled_run
+                    value: !lambda "return id(system_time).now().hour;"
       - seconds: 0
         minutes: "1-59"
         then:
