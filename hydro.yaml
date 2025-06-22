@@ -33,16 +33,6 @@ web_server:
   version: 3
 
 globals:
-  - id: interval_hours
-    type: int
-    initial_value: "6" # run every 6 hours
-    restore_value: true
-
-  - id: runtime_minutes
-    type: int
-    initial_value: "5"
-    restore_value: true
-
   - id: last_scheduled_run
     type: int
     initial_value: "-1" # To track last scheduled run hour
@@ -92,7 +82,7 @@ text_sensor:
       if (!id(system_time).now().is_valid()) return {"Unknown"};
 
       auto now = id(system_time).now();
-      int interval = id(interval_hours);
+      int interval = id(interval_input).state;
 
       // Calculate run times based on interval
       std::string result = "";
@@ -177,23 +167,6 @@ number:
     step: 1
     initial_value: 6
     restore_value: true
-    on_value:
-      then:
-        - lambda: |-
-            id(interval_hours) = (int)x;
-            // Make sure interval divides evenly into 24 if possible
-            if (24 % id(interval_hours) != 0) {
-              // Find the closest divisor
-              int closest = id(interval_hours);
-              for (int i = id(interval_hours) - 1; i >= 1; i--) {
-                if (24 % i == 0 && 24 / i <= id(interval_hours) + 2) {
-                  closest = i;
-                  break;
-                }
-              }
-              id(interval_hours) = closest;
-            }
-            ESP_LOGI("schedule", "Interval set to every %d hours", id(interval_hours));
 
   - platform: template
     name: "Pump Runtime (min)"
@@ -205,11 +178,6 @@ number:
     step: 1
     initial_value: 2
     restore_value: true
-    on_value:
-      then:
-        - lambda: |-
-            id(runtime_minutes) = (int)x;
-            ESP_LOGI("schedule", "Runtime set to %d minutes", id(runtime_minutes));
 
 time:
   - platform: sntp
@@ -226,7 +194,7 @@ time:
               int current_hour = now.hour;
 
               // Check if current hour is a scheduled run time (divisible by interval)
-              if (current_hour % id(interval_hours) == 0 && current_hour != id(last_scheduled_run)) {
+              if (current_hour % (int) id(interval_input).state == 0 && current_hour != id(last_scheduled_run)) {
                 ESP_LOGI("schedule", "Running pump at scheduled time %02d:00", current_hour);
                 id(last_scheduled_run) = current_hour;
                 id(run_pump).execute();
@@ -259,7 +227,7 @@ script:
     mode: restart
     then:
       - fan.turn_on: pump
-      - delay: !lambda "return id(runtime_minutes) * 60 * 1000;"
+      - delay: !lambda "return id(runtime_input).state * 60 * 1000;"
       - fan.turn_off: pump
       - script.execute: sleepy
   - id: sleepy
