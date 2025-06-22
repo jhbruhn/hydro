@@ -34,10 +34,23 @@ update:
     id: http_firmware_update
     source: https://jhbruhn.github.io/hydro/firmware/hydro.manifest.json
     on_update_available:
-      - globals.set:
-          id: prevent_sleep
-          value: "true"
-      - update.perform:
+      - if:
+          condition:
+            switch.is_on: auto_ota
+          then:
+            - globals.set:
+                id: prevent_sleep
+                value: "true"
+            - update.perform:
+
+switch:
+  - platform: template
+    id: auto_ota
+    name: Auto Install Firmware Updates
+    icon: "mdi:cpu"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
 
 # Sets up Bluetooth LE (Only on ESP32) to allow the user
 # to provision wifi credentials to the device.
