@@ -6,6 +6,16 @@ template: |
   $CHANGES
 version-resolver:
   default: minor
+  major:
+    labels:
+      - "major"
+  minor:
+    labels:
+      - "feature"
+      - "enhancement"
+  patch:
+    labels:
+      - "bug"
 categories:
   - title: "🚀 Features"
     labels:
