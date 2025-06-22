@@ -48,6 +48,11 @@ globals:
     initial_value: "-1" # To track last scheduled run hour
     restore_value: true
 
+  - id: prevent_sleep # set this to prevent deep sleep, e.g. for updates
+    type: bool
+    initial_value: "false"
+    restore_value: False
+
 deep_sleep:
   id: deep_sleep_1
   run_duration: 24h
@@ -262,7 +267,9 @@ script:
     then:
       - if:
           condition:
-            time.has_time:
+            and:
+              - time.has_time:
+              - lambda: return !id(prevent_sleep);
           then:
             #- max17043.sleep_mode: max17043_id
             - deep_sleep.enter:
