@@ -158,7 +158,7 @@ sensor:
 
 number:
   - platform: template
-    name: "Pump Interval Hours"
+    name: "Pump Interval"
     id: interval_input
     entity_category: config
     optimistic: true
@@ -167,9 +167,11 @@ number:
     step: 1
     initial_value: 6
     restore_value: true
+    mode: box
+    unit_of_measurement: h
 
   - platform: template
-    name: "Pump Runtime (min)"
+    name: "Pump Runtime"
     id: runtime_input
     entity_category: config
     optimistic: true
@@ -178,6 +180,9 @@ number:
     step: 1
     initial_value: 2
     restore_value: true
+    mode: box
+    unit_of_measurement: min
+    device_class: duration
 
 time:
   - platform: sntp
