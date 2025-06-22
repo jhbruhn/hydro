@@ -202,7 +202,7 @@ time:
                     id: last_scheduled_run
                     value: !lambda "return id(system_time).now().hour;"
       - seconds: 0
-        minutes: "1-59"
+        minutes: "1-55" # don't trigger in the last 5 minutes because we might've already woken up again
         then:
           - if:
               condition:
