@@ -247,6 +247,7 @@ script:
               - lambda: return !id(prevent_sleep);
           then:
             #- max17043.sleep_mode: max17043_id
+            - delay: 5s
             - deep_sleep.enter:
                 id: deep_sleep_1
                 sleep_duration: !lambda "auto now = id(system_time).now(); return (60 - now.minute - 2) * 60 * 1000;"
