@@ -47,7 +47,7 @@ switch:
   - platform: template
     id: auto_ota
     name: Auto Install Firmware Updates
-    icon: "mdi:cpu"
+    icon: "mdi:auto-download"
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
