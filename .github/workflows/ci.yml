@@ -23,6 +23,7 @@ jobs:
         #### Modify below here to match your project ####
         file:
           - hydro
+          - hydro.distance-sensor
         #### Modify above here to match your project ####
 
         esphome-version:

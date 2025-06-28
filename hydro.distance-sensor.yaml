@@ -1,3 +1,7 @@
+esphome:
+  name: hydro-ds
+
 packages:
   # Include all of the core configuration
   base: !include module-base.yaml
+  distance-sensor: !include module-distance-sensor.yaml

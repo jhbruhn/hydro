@@ -15,6 +15,7 @@ jobs:
       #### Modify below here to match your project ####
       files: |
         hydro.factory.yaml
+        hydro.distance-sensor.factory.yaml
       esphome-version: 2025.6.0
       combined-name: hydro
       #### Modify above here to match your project ####

@@ -1,0 +1,254 @@
+esphome:
+  name: hydro
+  friendly_name: Hydro Tower
+  # Automatically add the mac address to the name
+  # so you can use a single firmware for all devices
+  name_add_mac_suffix: true
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# To be able to get logs from the device via serial and api.
+logger:
+
+# API is a requirement of the dashboard import.
+api:
+
+# OTA is required for Over-the-Air updating
+ota:
+  - platform: esphome
+
+wifi:
+  # Set up a wifi access point using the device name above
+  ap:
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device.
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+
+globals:
+  - id: last_scheduled_run
+    type: int
+    initial_value: "-1" # To track last scheduled run hour
+    restore_value: true
+
+  - id: prevent_sleep # set this to prevent deep sleep, e.g. for updates
+    type: bool
+    initial_value: "false"
+    restore_value: False
+
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: 24h
+  sleep_duration: 24h
+
+i2c:
+  sda: GPIO5
+  scl: GPIO6
+  scan: true
+  id: bus_a
+
+status_led:
+  pin:
+    number: GPIO7
+    inverted: false
+
+text_sensor:
+  - platform: template
+    name: "Last Run Hour"
+    entity_category: diagnostic
+    id: last_run_text
+    icon: "mdi:clock-check-outline"
+    update_interval: 10s
+    lambda: |-
+      if (id(last_scheduled_run) == -1) return {"Never"};
+
+      char buffer[8];
+      sprintf(buffer, "%02d:00", id(last_scheduled_run));
+      return {buffer};
+  - platform: template
+    name: "Next Scheduled Runs"
+    entity_category: diagnostic
+    id: next_run_text
+    icon: "mdi:clock-outline"
+    update_interval: 10s
+    lambda: |-
+      if (!id(system_time).now().is_valid()) return {"Unknown"};
+
+      auto now = id(system_time).now();
+      int interval = id(interval_input).state;
+
+      // Calculate run times based on interval
+      std::string result = "";
+      for (int i = 0; i < 24; i += interval) {
+        if (result.length() > 0) {
+          result += ", ";
+        }
+        char buffer[6];
+        sprintf(buffer, "%02d:00", i);
+        result += buffer;
+      }
+
+      return {result};
+
+sensor:
+  - platform: adc
+    pin: GPIO00
+    id: battery_voltage
+    name: "Battery Voltage"
+    entity_category: diagnostic
+    attenuation: auto
+    update_interval: 10s
+    device_class: voltage
+    accuracy_decimals: 2
+    filters:
+      - multiply: 2
+    on_value:
+      then:
+        - component.update: battery_percent
+  - platform: template
+    lambda: return id(battery_voltage).state;
+    update_interval: never
+    name: "Battery"
+    entity_category: diagnostic
+    id: battery_percent
+    unit_of_measurement: "%"
+    device_class: battery
+    filters:
+      - calibrate_linear:
+          method: exact
+          datapoints:
+            - 0.00 -> 0.0
+            - 3.30 -> 1.0
+            - 3.39 -> 10.0
+            - 3.75 -> 50.0
+            - 4.11 -> 90.0
+            - 4.20 -> 100.0
+      - lambda: |-
+          if (x <= 100) {
+            return x;
+          } else {
+            return 100;
+          }
+          if (x <0) {
+            return 0;
+          }
+  - platform: bh1750
+    name: "Illuminance"
+    address: 0x23
+    update_interval: 10s
+  - platform: template
+    name: "Wakeup Cause"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: return esp_sleep_get_wakeup_cause();
+  #- platform: max17043
+  #   id: max17043_id
+  #   i2c_id: bus_a
+  #   battery_voltage:
+  #     name: "Battery Voltage"
+  #  battery_level:
+  #   name: "Battery"
+
+number:
+  - platform: template
+    name: "Pump Interval"
+    id: interval_input
+    entity_category: config
+    optimistic: true
+    min_value: 1
+    max_value: 24
+    step: 1
+    initial_value: 6
+    restore_value: true
+    mode: box
+    unit_of_measurement: h
+
+  - platform: template
+    name: "Pump Runtime"
+    id: runtime_input
+    entity_category: config
+    optimistic: true
+    min_value: 1
+    max_value: 30
+    step: 1
+    initial_value: 2
+    restore_value: true
+    mode: box
+    unit_of_measurement: min
+    device_class: duration
+
+time:
+  - platform: sntp
+    timezone: Europe/Berlin
+    id: system_time
+    on_time:
+      - seconds: 0
+        minutes: 0
+        then:
+          - if:
+              condition:
+                lambda: "return (id(system_time).now().hour % (int) id(interval_input).state) == 0;"
+              then:
+                - fan.turn_on: pump
+                - globals.set:
+                    id: last_scheduled_run
+                    value: !lambda "return id(system_time).now().hour;"
+      - seconds: 0
+        minutes: "1-55" # don't trigger in the last 5 minutes because we might've already woken up again
+        then:
+          - if:
+              condition:
+                lambda: "return (id(system_time).now().hour % (int) id(interval_input).state) != 0;"
+              then:
+                - script.execute: sleepy
+              else:
+                - if:
+                    condition:
+                      lambda: "return id(system_time).now().minute >= id(runtime_input).state;"
+                    then:
+                      - fan.turn_off: pump
+                      - script.execute: sleepy
+
+output:
+  - platform: ledc
+    pin: GPIO03
+    id: motor_forward_pin
+    frequency: 1000 Hz
+
+  - platform: ledc
+    pin: GPIO04
+    id: motor_reverse_pin
+    frequency: 1000 Hz
+
+fan:
+  - platform: hbridge
+    id: pump
+    internal: true
+    name: "Pump"
+    pin_a: motor_forward_pin
+    pin_b: motor_reverse_pin
+    decay_mode: slow
+
+script:
+  - id: sleepy
+    mode: restart
+    then:
+      - if:
+          condition:
+            and:
+              - time.has_time:
+              - lambda: return !id(prevent_sleep);
+          then:
+            #- max17043.sleep_mode: max17043_id
+            - delay: 5s
+            - deep_sleep.enter:
+                id: deep_sleep_1
+                sleep_duration: !lambda "auto now = id(system_time).now(); return (60 - now.minute - 2) * 60 * 1000;"
