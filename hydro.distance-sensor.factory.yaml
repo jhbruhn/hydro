@@ -1,6 +1,6 @@
 packages:
   # Include all of the core configuration
-  core: !include hydro.yaml
+  core: !include hydro.distance-sensor.yaml
   ota: !include module-ota.yaml
   factory: !include module-factory.yaml
 
@@ -8,9 +8,9 @@ packages:
 # In this case it is the core yaml file that does not contain the extra things
 # that are provided by this factory yaml file as the user does not need these once adopted.
 dashboard_import:
-  package_import_url: github://jhbruhn/hydro/hydro.yaml@main
+  package_import_url: github://jhbruhn/hydro/hydro.distance-sensor.yaml@main
 
 update:
   - platform: http_request
     id: !extend http_firmware_update
-    source: https://jhbruhn.github.io/hydro/firmware/hydro.manifest.json
+    source: https://jhbruhn.github.io/hydro/firmware/hydro.distance-sensor.manifest.json
