@@ -22,12 +22,12 @@ You can use the button below to install the pre-built firmware directly to your 
             <label>
                 <input type="radio" name="haOption" value="Plain" />
                 <div class="name">Plain</div>
-                <div class="description">Choose this option to enable if you don't have an I2C VL53L0X distance sensor.</div>
+                <div class="description">Choose this option if you don't have an I2C VL53L0X distance sensor.</div>
             </label>
             <label>
                 <input type="radio" name="haOption" value="DistanceSensor" />
                 <div class="name">Distance Sensor</div>
-                <div class="description">Choose this option to enable if you do have an I2C VL53L0X distance sensor to measure the water level.</div>
+                <div class="description">Choose this option to enable an I2C VL53L0X distance sensor to measure the water level.</div>
             </label>
         </div>
     </div>
