@@ -58,7 +58,7 @@ You can use the button below to install the pre-built firmware directly to your 
                         installButton.classList.remove("hidden");
 
                         if (this.value === "DistanceSensor") {
-                            installButton.setAttribute("manifest", "firmware/hydro.distance-sensor.manifest.json");
+                            installButton.setAttribute("manifest", "firmware/hydro-ds.manifest.json");
                         } else if (this.value === "Plain") {
                             installButton.setAttribute("manifest", "firmware/hydro.manifest.json");
                         }
