@@ -19,4 +19,4 @@ dashboard_import:
 update:
   - platform: http_request
     id: !extend http_firmware_update
-    source: https://jhbruhn.github.io/hydro/firmware/hydro.distance-sensor.manifest.json
+    source: https://jhbruhn.github.io/hydro/firmware/hydro-ds.manifest.json
