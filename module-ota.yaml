@@ -1,7 +1,3 @@
-external_components:
-  - source: github://pr#9174
-    components: [update, http_request]
-
 ota:
   - platform: http_request
 
